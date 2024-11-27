@@ -1,0 +1,27 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# VSCode files
+.DS_Store
+*.code-workspace
+*.vscode
+
+# Vim files
+tags
+*.swp
+$HOME
+
+# Python files
+/venv
+.coverage
+.pytest_cache
+__pycache__/
+*.pyc
+.venv
+
