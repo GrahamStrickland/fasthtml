@@ -1,11 +1,15 @@
 import os
+import uuid
 
 import replicate
 import requests
 import uvicorn
 from fastcore.parallel import threaded
 from fasthtml.common import (
+    B,
     Button,
+    Card,
+    database,
     Div,
     FastHTML,
     FileResponse,
@@ -14,24 +18,32 @@ from fasthtml.common import (
     H1,
     Img,
     Input,
+    Link,
     Main,
+    P,
     picolink,
-    serve,
     Title,
 )
 from PIL import Image
-
-
-app = FastHTML(hdrs=(picolink,))
 
 
 replicate_api_token = os.environ["REPLICATE_API_KEY"]
 client = replicate.Client(api_token=replicate_api_token)
 
 
-generations = []
-folder = "gens/"
-os.makedirs(folder, exist_ok=True)
+tables = database("data/gens.db").t
+gens = tables.gens
+if gens not in tables:
+    gens.create(prompt=str, id=int, folder=str, pk="id")
+Generation = gens.dataclass()
+
+
+gridlink = Link(
+    rel="stylesheet",
+    href="https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css",
+    type="text/css",
+)
+app = FastHTML(hdrs=(picolink, gridlink))
 
 
 @app.get("/")
@@ -43,28 +55,39 @@ def get():
         target_id="gen-list",
         hx_swap="afterbegin",
     )
-    gen_list = Div(id="gen-list")
+    gen_containers = [generation_preview(g) for g in gens(limit=10)]
+    gen_list = Div(*gen_containers[::-1], id="gen-list", cls="row")
     return Title("Image Generation Demo"), Main(
         H1("Magic Image Generation"), add, gen_list, cls="container"
     )
 
 
-def generation_preview(id):
-    if os.path.exists(f"gens/{id}.png"):
-        return Div(Img(src=f"/gens/{id}.png"), id=f"gen-{id}")
+def generation_preview(g):
+    grid_cls = "box col-xs-12 col-sm-6 col-md-4 col-lg-3"
+    image_path = f"{g.folder}/{g.id}.png"
+    if os.path.exists(image_path):
+        return Div(
+            Card(
+                Img(src=image_path, alt="Card image", cls="card-img-top"),
+                Div(P(B("Prompt: "), g.prompt, cls="card-text"), cls="card-body"),
+            ),
+            id=f"gen-{g.id}",
+            cls=grid_cls,
+        )
     else:
         return Div(
-            "Generating...",
-            id=f"gen-{id}",
-            hx_post=f"/generations/{id}",
-            hx_trigger="every 1s",
+            f"Generating gen {g.id} with prompt {g.prompt}",
+            id=f"gen-{g.id}",
+            hx_get=f"/gens/{g.id}",
+            hx_trigger="every 2s",
             hx_swap="outerHTML",
+            cls=grid_cls,
         )
 
 
-@app.post("/generations/{id}")
+@app.post("/gens/{id}")
 def get(id: int):
-    return generation_preview(id)
+    return generation_preview(gens.get(id))
 
 
 @app.get("/{fname:path}.{ext:static}")
@@ -74,17 +97,18 @@ def static(fname: str, ext: str):
 
 @app.post("/")
 def post(prompt: str):
-    id = len(generations)
-    generate_and_save(prompt, id)
-    generations.append(prompt)
+    folder = f"data/gens/{str(uuid.uuid4())}"
+    os.makedirs(folder, exist_ok=True)
+    g = gens.insert(Generation(prompt=prompt, folder=folder))
+    generate_and_save(g.prompt, g.id, g.folder)
     clear_input = Input(
         id="new-prompt", name="prompt", placeholder="Enter a prompt", hx_swap_oob="true"
     )
-    return generation_preview(id), clear_input
+    return generation_preview(g), clear_input
 
 
 @threaded
-def generate_and_save(prompt, id):
+def generate_and_save(prompt, id, folder):
     output = client.run(
         "playgroundai/playground-v2.5-1024px-aesthetic:a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24",
         input={
@@ -110,4 +134,3 @@ if __name__ == "__main__":
         host="127.0.0.1",
         port=int(os.getenv("PORT", default=5001)),
     )
-serve()
