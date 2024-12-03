@@ -28,3 +28,4 @@ __pycache__/
 # FastHTML files
 .sesskey
 /data
+/gens
