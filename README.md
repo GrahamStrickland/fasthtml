@@ -1,3 +1,3 @@
 # fasthtml
 
-Test app for [FastHTML](https://docs.fastht.ml/)
+Tutorials from the [FastHTML](https://docs.fastht.ml/) documentation
