@@ -1,3 +1,4 @@
+claudette
 replicate
 requests
 Pillow
