@@ -34,7 +34,7 @@ client = replicate.Client(api_token=replicate_api_token)
 tables = database("data/gens.db").t
 gens = tables.gens
 if gens not in tables:
-    gens.create(prompt=str, id=int, folder=str, pk="id")
+    gens.create(prompt=str, session_id=str, id=int, folder=str, pk="id")
 Generation = gens.dataclass()
 
 
@@ -47,7 +47,9 @@ app = FastHTML(hdrs=(picolink, gridlink))
 
 
 @app.get("/")
-def get():
+async def get(session):
+    if "session_id" not in session:
+        session["session_id"] = str(uuid.uuid4())
     inp = Input(id="new-prompt", name="prompt", placeholder="Enter a prompt")
     add = Form(
         Group(inp, Button("Generate")),
@@ -55,10 +57,17 @@ def get():
         target_id="gen-list",
         hx_swap="afterbegin",
     )
-    gen_containers = [generation_preview(g) for g in gens(limit=10)]
+    gen_containers = [
+        generation_preview(g)
+        for g in gens(limit=10, where=f"session_id == '{session['session_id']}'")
+    ]
     gen_list = Div(*gen_containers[::-1], id="gen-list", cls="row")
     return Title("Image Generation Demo"), Main(
-        H1("Magic Image Generation"), add, gen_list, cls="container"
+        H1("Image Gen: Sessions"),
+        P("Hello", str(session)),
+        add,
+        gen_list,
+        cls="container",
     )
 
 
@@ -86,20 +95,20 @@ def generation_preview(g):
 
 
 @app.post("/gens/{id}")
-def get(id: int):
+async def get(id: int):
     return generation_preview(gens.get(id))
 
 
 @app.get("/{fname:path}.{ext:static}")
-def static(fname: str, ext: str):
+async def static(fname: str, ext: str):
     return FileResponse(f"{fname}.{ext}")
 
 
 @app.post("/")
-def post(prompt: str):
+async def post(prompt: str, session):
     folder = f"data/gens/{str(uuid.uuid4())}"
     os.makedirs(folder, exist_ok=True)
-    g = gens.insert(Generation(prompt=prompt, folder=folder))
+    g = gens.insert(Generation(prompt=prompt, folder=folder, session_id=session["session_id"]))
     generate_and_save(g.prompt, g.id, g.folder)
     clear_input = Input(
         id="new-prompt", name="prompt", placeholder="Enter a prompt", hx_swap_oob="true"
