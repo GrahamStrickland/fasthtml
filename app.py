@@ -1,31 +1,45 @@
 from fasthtml.common import (
+    A,
+    Button,
     FastHTML,
+    Form,
     H1,
+    Input,
     Main,
+    P,
     picolink,
     serve,
     Style,
-    Title,
 )
 
 
 css = Style(":root {--pico-font-size:90%,--pico-font-family: Pacifico, cursive;}")
 app = FastHTML(hdrs=(picolink, css))
-
+messages = ["This is a message, which will get rendered as a paragraph"]
 
 @app.get("/")
 def home():
-    return (Title("Hello World"), Main(H1("Hello, World"), cls="container"))
+    return Main(
+        H1("Messages"),
+        *[P(msg) for msg in messages],
+        A("Link to Page 2 (to add messages)", href="/page2"),
+    )
 
 
-@app.route("/", methods=["post", "put"])
-def post_or_put():
-    return "got a POST or PUT request"
+@app.get("/page2")
+def page2():
+    return Main(
+        P("Add a message with the form below:"),
+        Form(
+            Input(type="text", name="data"), Button("Submit"), action="/", method="post"
+        ),
+    )
 
 
-@app.get("/greet/{nm}")
-def greet(nm: str):
-    return f"Good day to you, {nm}!"
+@app.post("/")
+def add_message(data: str):
+    messages.append(data)
+    return home()
 
 
 serve()
