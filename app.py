@@ -1,10 +1,7 @@
 from fasthtml.common import (
-    Div,
     FastHTML,
     H1,
-    P,
     serve,
-    Title,
 )
 
 app = FastHTML()
@@ -12,12 +9,17 @@ app = FastHTML()
 
 @app.get("/")
 def home():
-    return (
-        Title("Page Demo"),
-        Div(H1("Hello, World")),
-        P("Some text"),
-        P("Some more text"),
-    )
+    return H1("Hello, World")
+
+
+@app.route("/", methods=["post", "put"])
+def post_or_put():
+    return "got a POST or PUT request"
+
+
+@app.get("/greet/{nm}")
+def greet(nm: str):
+    return f"Good day to you, {nm}!"
 
 
 serve()
