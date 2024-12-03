@@ -1,14 +1,4 @@
-from fasthtml.common import (
-    Button, 
-    FastHTML, 
-    H1, 
-    Main, 
-    P, 
-    picolink,
-    serve,
-    Style,
-    Title
-)
+from fasthtml.common import Button, FastHTML, H1, Main, P, picolink, serve, Style, Title
 
 
 css = Style(":root {--pico-font-size:90%,--pico-font-family: Pacifico, cursive;}")

@@ -17,7 +17,6 @@ from fasthtml.common import (
     Hidden,
     Input,
     Li,
-    Main,
     Script,
     Style,
     Textarea,
@@ -27,7 +26,6 @@ from fasthtml.common import (
     # These are FastHTML symbols we'll use
     Beforeware,
     FastHTML,
-    fast_app,
     SortableJS,
     fill_form,
     picolink,

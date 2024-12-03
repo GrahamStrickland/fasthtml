@@ -17,6 +17,7 @@ css = Style(":root {--pico-font-size:90%,--pico-font-family: Pacifico, cursive;}
 app = FastHTML(hdrs=(picolink, css))
 messages = ["This is a message, which will get rendered as a paragraph"]
 
+
 @app.get("/")
 def home():
     return Main(
